@@ -14,6 +14,23 @@ from pathlib import Path
 app = FastAPI(title="Mergington High School API",
               description="API for viewing and signing up for extracurricular activities")
 
+# Unregister endpoint
+from fastapi import Request
+@app.post("/unregister")
+async def unregister_participant(request: Request):
+    data = await request.json()
+    activity_name = data.get("activity")
+    participant_email = data.get("participant")
+    if not activity_name or not participant_email:
+        return {"success": False, "error": "Missing activity or participant"}
+    if activity_name not in activities:
+        return {"success": False, "error": "Activity not found"}
+    activity = activities[activity_name]
+    if participant_email not in activity["participants"]:
+        return {"success": False, "error": "Participant not found in activity"}
+    activity["participants"].remove(participant_email)
+    return {"success": True}
+
 # Mount the static files directory
 current_dir = Path(__file__).parent
 app.mount("/static", StaticFiles(directory=os.path.join(Path(__file__).parent,
