@@ -20,12 +20,75 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // Participants list HTML
+        let participantsHTML = "";
+        if (details.participants.length > 0) {
+          participantsHTML = `
+            <div class="participants-section">
+              <strong>Participants:</strong>
+              <ul class="participants-list">
+                ${details.participants.map(p => `<li>${p}</li>`).join("")}
+              </ul>
+            </div>
+          `;
+          participantsHTML = `
+            <div class="participants-section">
+              <strong>Participants:</strong>
+              <ul class="participants-list">
+                ${details.participants.map(p => `
+                  <li class="participant-item">
+                    <span class="participant-name">${p}</span>
+                    <span class="delete-participant" title="Remove" data-participant="${p}">&#128465;</span>
+                  </li>
+                `).join("")}
+              </ul>
+            </div>
+          `;
+        } else {
+          participantsHTML = `
+            <div class="participants-section no-participants">
+              <em>No participants yet.</em>
+            </div>
+          `;
+        }
+
         activityCard.innerHTML = `
           <h4>${name}</h4>
           <p>${details.description}</p>
           <p><strong>Schedule:</strong> ${details.schedule}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          ${participantsHTML}
         `;
+
+        // Add event listeners for delete icons
+        setTimeout(() => {
+          activityCard.querySelectorAll('.delete-participant').forEach(icon => {
+            icon.addEventListener('click', function(e) {
+              const participant = this.getAttribute('data-participant');
+              // Call unregister logic (replace with your actual unregister function)
+              unregisterParticipant(name, participant);
+            });
+          });
+        }, 0);
+
+        // Unregister function (should be implemented to update backend and UI)
+        function unregisterParticipant(activityName, participantEmail) {
+          fetch(`/unregister`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ activity: activityName, participant: participantEmail })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              // Refresh only the activities list
+              fetchActivities();
+            } else {
+              alert('Failed to unregister participant.');
+            }
+          })
+          .catch(() => alert('Error unregistering participant.'));
+        }
 
         activitiesList.appendChild(activityCard);
 
@@ -62,6 +125,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Refresh only the activities list
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
